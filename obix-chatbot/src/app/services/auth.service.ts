@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, from, throwError, switchMap } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { catchError, tap, map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface UserProfile {
   firstName: string;
@@ -31,7 +32,7 @@ const DEFAULT_USER: User = {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8000/api';
+  private apiUrl = environment.apiUrl;
   private currentUserSubject = new BehaviorSubject<User>(DEFAULT_USER);
   currentUser$ = this.currentUserSubject.asObservable();
 
