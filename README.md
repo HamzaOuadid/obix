@@ -1,62 +1,104 @@
-# OBIX Chatbot Project
+# DEBT - OBIX Chatbot
 
-Welcome to the OBIX Chatbot project! This repository contains a full-stack chatbot application consisting of a Django backend and an Angular frontend.
+A chat interface that uses AI to answer questions related to the OBIX system and its functionality.
 
 ## Project Structure
 
-- `obix-chatbot/`: Angular frontend application
-- `obix-chatbot-backend/`: Django backend API
-- `render.yaml`: Deployment configuration for Render
+- `obix-chatbot/` - Angular frontend application
+- `obix-chatbot-backend/` - Django backend API
+- `nginx/` - Nginx configuration for serving the application
+- `docker-compose.yml` - Docker Compose configuration for local development
 
-## Quick Start
+## Prerequisites
 
-### Local Development
+- Docker and Docker Compose
+- Git
 
-1. **Backend Setup**:
+## Setup Instructions
+
+1. Clone the repository:
    ```bash
-   cd obix-chatbot-backend
-   pip install -r requirements.txt
-   python manage.py migrate
-   python manage.py runserver
+   git clone <repository-url>
+   cd DEBT
    ```
 
-2. **Frontend Setup**:
-   ```bash
-   cd obix-chatbot
-   npm install
-   ng serve
+2. Create a `.env` file in the root directory with the following variables:
+   ```
+   # Database
+   POSTGRES_DB=debt_db
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD=password
+
+   # Django
+   DEBUG=True
+   SECRET_KEY=your_secret_key
+   DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+   
+   # API Keys
+   MISTRAL_API_KEY=your_mistral_api_key
    ```
 
-3. Access the application at `http://localhost:4200`
+3. Build and start the containers:
+   ```bash
+   docker-compose build
+   docker-compose up -d
+   ```
 
-## Deployment to Render
+4. Create a superuser for the Django admin:
+   ```bash
+   docker-compose exec backend python manage.py createsuperuser
+   ```
 
-This project is configured for easy deployment to Render using the root `render.yaml` file.
+5. Access the application:
+   - Frontend: http://localhost
+   - Backend API: http://localhost/api
+   - Django Admin: http://localhost/admin
 
-Quick deployment steps:
+## Development
 
-1. Push this repository to GitHub (private repository recommended)
-2. Create a Render account at [render.com](https://render.com/)
-3. In Render dashboard, click "New" > "Blueprint"
-4. Connect to your GitHub repository
-5. Set required environment variables:
-   - `GEMINI_API_KEY`: Your Google Gemini API key
-   - `MISTRAL_API_KEY`: Your Mistral API key
-6. Click "Apply" to create all services
+### Frontend
 
-The deployment will create:
-- Backend Django API service
-- Frontend Angular web service
-- PostgreSQL database
+The Angular frontend is located in the `obix-chatbot/` directory. To make changes:
 
-## Features
+1. Modify the files in the `obix-chatbot/` directory
+2. Rebuild the frontend container:
+   ```bash
+   docker-compose build frontend
+   docker-compose up -d frontend
+   ```
 
-- Angular frontend with modern UI
-- Django backend with RESTful API
-- Integration with Gemini and Mistral AI
-- Secure authentication
-- PostgreSQL database
-- Comprehensive CORS and security settings
+### Backend
+
+The Django backend is located in the `obix-chatbot-backend/` directory. To make changes:
+
+1. Modify the files in the `obix-chatbot-backend/` directory
+2. Rebuild the backend container:
+   ```bash
+   docker-compose build backend
+   docker-compose up -d backend
+   ```
+
+## Troubleshooting
+
+### Checking Logs
+
+To check logs for troubleshooting:
+
+```bash
+# All services
+docker-compose logs
+
+# Specific service
+docker-compose logs frontend
+docker-compose logs backend
+docker-compose logs nginx
+```
+
+### Common Issues
+
+1. **502 Bad Gateway**: Check if the backend service is running correctly
+2. **Missing CSRF Token**: Make sure the browser is sending requests to the correct API endpoint
+3. **Database Connection Issues**: Verify the database container is running and the connection settings are correct
 
 ## License
 
