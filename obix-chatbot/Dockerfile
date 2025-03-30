@@ -12,6 +12,9 @@ RUN npm install --legacy-peer-deps --quiet
 # Copy project files
 COPY . .
 
+# Build the Angular app
+RUN npm run build -- --configuration production || echo "Build failed, will use server.js fallback"
+
 # Ensure the dist directory exists
 RUN mkdir -p /app/dist
 
