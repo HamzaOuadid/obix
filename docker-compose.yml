@@ -28,11 +28,6 @@ services:
   frontend:
     build:
       context: ./obix-chatbot
-    volumes:
-      - ./obix-chatbot:/app
-      - /app/node_modules
-    env_file:
-      - ./.env
     environment:
       - PORT=10000
     restart: always

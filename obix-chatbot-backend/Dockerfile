@@ -16,8 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Copy requirements file
 COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install gunicorn psycopg2-binary
@@ -28,7 +30,10 @@ COPY . .
 # Make directory for static files
 RUN mkdir -p /app/staticfiles
 
-# Run entrypoint script
+# Collect static files
+RUN python manage.py collectstatic --noinput || echo "Static files collection failed, but continuing build"
+
+# Set up entrypoint
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 

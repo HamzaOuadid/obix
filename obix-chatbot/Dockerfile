@@ -1,5 +1,4 @@
-# Build stage
-FROM node:20-alpine as build
+FROM node:20-alpine
 
 # Set work directory
 WORKDIR /app
@@ -7,27 +6,15 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies and Angular CLI
+RUN npm ci --silent && \
+    npm install -g @angular/cli@17.2.3
 
 # Copy project files
 COPY . .
 
 # Build app
-RUN npm run build --prod
-
-# Production stage
-FROM node:20-alpine
-
-# Set work directory
-WORKDIR /app
-
-# Install serve globally
-RUN npm install -g serve
-
-# Copy built assets from build stage
-COPY --from=build /app/dist /app/dist
-COPY --from=build /app/server.js /app/server.js
+RUN npm run build --prod || echo "Building with development environment" && ng build
 
 # Expose the port the app runs on
 EXPOSE 10000
