@@ -1,1 +1,0 @@
-web: gunicorn debt_chatbot.wsgi:application --log-file - 

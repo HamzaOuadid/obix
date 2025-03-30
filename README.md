@@ -7,7 +7,6 @@ Welcome to the OBIX Chatbot project! This repository contains a full-stack chatb
 - `obix-chatbot/`: Angular frontend application
 - `obix-chatbot-backend/`: Django backend API
 - `render.yaml`: Deployment configuration for Render
-- `RENDER_DEPLOYMENT.md`: Detailed deployment guide
 
 ## Quick Start
 
@@ -32,7 +31,7 @@ Welcome to the OBIX Chatbot project! This repository contains a full-stack chatb
 
 ## Deployment to Render
 
-This project is configured for easy deployment to Render using Blueprints. For detailed instructions, see [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md).
+This project is configured for easy deployment to Render using the root `render.yaml` file.
 
 Quick deployment steps:
 
@@ -44,6 +43,11 @@ Quick deployment steps:
    - `GEMINI_API_KEY`: Your Google Gemini API key
    - `MISTRAL_API_KEY`: Your Mistral API key
 6. Click "Apply" to create all services
+
+The deployment will create:
+- Backend Django API service
+- Frontend Angular web service
+- PostgreSQL database
 
 ## Features
 
