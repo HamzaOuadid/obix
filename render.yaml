@@ -1,13 +1,10 @@
 services:
   - type: web
     name: obix-chatbot-backend
-    env: python
+    env: docker
     region: ohio
-    buildCommand: cd obix-chatbot-backend && pip install -r requirements.txt
-    startCommand: cd obix-chatbot-backend && gunicorn debt_chatbot.wsgi:application --log-file -
+    dockerfilePath: obix-chatbot-backend/Dockerfile
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.0
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
@@ -25,13 +22,10 @@ services:
 
   - type: web
     name: obix-chatbot-frontend
-    env: node
+    env: docker
     region: ohio
-    buildCommand: cd obix-chatbot && npm install && npm run build
-    startCommand: cd obix-chatbot && node server.js
+    dockerfilePath: obix-chatbot/Dockerfile
     envVars:
-      - key: NODE_VERSION
-        value: 20.11.0
       - key: API_URL
         value: https://obix-chatbot-backend.onrender.com
       - key: PORT
