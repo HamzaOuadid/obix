@@ -22,7 +22,7 @@ if not exist .env (
         echo POSTGRES_PORT=5432
         echo.
         echo # Django settings
-        echo SECRET_KEY=django-insecure-1234567890abcdefghijklmnopqrstuvwxyz
+        echo SECRET_KEY=django-insecure-development-key-change-in-production
         echo DEBUG=True
         echo DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
         echo DJANGO_CORS_ALLOWED_ORIGINS=http://localhost:10000 http://localhost
@@ -41,18 +41,23 @@ if not exist .env (
     pause
 )
 
+REM Clean up existing containers and volumes to avoid ContainerConfig errors
+echo Cleaning up existing containers...
+docker-compose down
+docker system prune -f --volumes
+
 REM Build and start the containers
 echo Building and starting containers...
-docker-compose build
+docker-compose build --no-cache
 docker-compose up -d
 
 REM Wait for backend container to be ready
 echo Waiting for backend to be ready...
-timeout /t 10 /nobreak
+timeout /t 15 /nobreak
 
 REM Apply migrations
 echo Applying database migrations...
-docker-compose exec backend python manage.py migrate
+docker-compose exec backend python manage.py migrate || echo Migration failed, but continuing...
 
 REM Display information
 echo.

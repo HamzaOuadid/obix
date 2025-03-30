@@ -16,9 +16,6 @@ services:
   backend:
     build:
       context: ./obix-chatbot-backend
-    volumes:
-      - ./obix-chatbot-backend:/app
-      - static_volume:/app/staticfiles
     env_file:
       - ./.env
     depends_on:
@@ -38,12 +35,10 @@ services:
       - "80:80"
     volumes:
       - ./nginx/conf:/etc/nginx/conf.d
-      - static_volume:/var/www/staticfiles
     depends_on:
       - backend
       - frontend
     restart: always
 
 volumes:
-  postgres_data:
-  static_volume: 
+  postgres_data: 
