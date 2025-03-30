@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --silent
+# Install dependencies with --legacy-peer-deps to avoid Angular CLI issues
+RUN npm install --legacy-peer-deps --quiet
 
 # Copy project files
 COPY . .
