@@ -3,7 +3,8 @@ services:
     name: obix-chatbot-backend
     env: docker
     region: ohio
-    dockerfilePath: obix-chatbot-backend/Dockerfile
+    dockerfilePath: ./obix-chatbot-backend/Dockerfile
+    dockerContext: ./obix-chatbot-backend
     envVars:
       - key: SECRET_KEY
         generateValue: true
@@ -24,7 +25,8 @@ services:
     name: obix-chatbot-frontend
     env: docker
     region: ohio
-    dockerfilePath: obix-chatbot/Dockerfile
+    dockerfilePath: ./obix-chatbot/Dockerfile
+    dockerContext: ./obix-chatbot
     envVars:
       - key: API_URL
         value: https://obix-chatbot-backend.onrender.com
