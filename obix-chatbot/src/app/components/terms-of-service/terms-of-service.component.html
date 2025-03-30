@@ -1,0 +1,19 @@
+<div class="terms-container">
+  <div class="terms-content-wrapper">
+    <div class="terms-header">
+      <div class="logo-container">
+        <img src="assets/obix.svg" alt="OBIX" class="logo-image">
+      </div>
+      <h1>Terms of Service</h1>
+    </div>
+
+    <div class="terms-content">
+      <div [innerHTML]="termsContent | markdown"></div>
+    </div>
+
+    <div class="terms-footer">
+      <p>Last Updated: March 30, 2024</p>
+      <button class="back-button" (click)="goBack()">Return to Login</button>
+    </div>
+  </div>
+</div>

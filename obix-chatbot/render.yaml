@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: obix-chatbot-frontend
+    env: node
+    region: ohio
+    buildCommand: npm install && npm run build
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: API_URL
+        value: https://obix-chatbot-backend.onrender.com
+      - key: PORT
+        value: 10000 

@@ -1,0 +1,42 @@
+{
+  "name": "OBIX Chatbot",
+  "description": "An AI chatbot for debt management assistance.",
+  "repository": "https://github.com/yourusername/obix-chatbot",
+  "keywords": ["django", "api", "chatbot", "ai", "langchain", "mistral", "gemini"],
+  "stack": "heroku-22",
+  "success_url": "/",
+  "env": {
+    "SECRET_KEY": {
+      "description": "A secret key for Django.",
+      "generator": "secret"
+    },
+    "DEBUG": {
+      "description": "Enable Debug mode.",
+      "value": "False"
+    },
+    "GEMINI_API_KEY": {
+      "description": "API key for Google Gemini AI model."
+    },
+    "MISTRAL_API_KEY": {
+      "description": "API key for Mistral AI model."
+    },
+    "ALLOWED_HOSTS": {
+      "description": "Comma-separated list of allowed hosts.",
+      "value": ".herokuapp.com,localhost,127.0.0.1"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "scripts": {
+    "postdeploy": "python manage.py migrate && python scripts/migrate_conversations.py"
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  }
+} 

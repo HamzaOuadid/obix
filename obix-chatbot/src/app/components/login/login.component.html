@@ -1,0 +1,57 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="logo-container">
+      <img src="assets/obix.svg" alt="OBIX" class="logo-image">
+    </div>
+    <p class="subtitle">Your personal financial assistant</p>
+    
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input 
+          type="text" 
+          id="username" 
+          formControlName="username" 
+          placeholder="Enter your username" 
+          [class.error]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+          autocomplete="username"
+        >
+        <div class="error-message" *ngIf="loginForm.get('username')?.invalid && loginForm.get('username')?.touched">
+          <span *ngIf="loginForm.get('username')?.errors?.['required']">Username is required</span>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input 
+          type="password" 
+          id="password" 
+          formControlName="password" 
+          placeholder="Enter your password" 
+          [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+          autocomplete="current-password"
+        >
+        <div class="error-message" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+          <span *ngIf="loginForm.get('password')?.errors?.['required']">Password is required</span>
+          <span *ngIf="loginForm.get('password')?.errors?.['minlength']">Password must be at least 6 characters</span>
+        </div>
+      </div>
+      
+      <div class="error-message login-error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+      
+      <button type="submit" class="login-button" [disabled]="loginForm.invalid || isLoading">
+        <span *ngIf="!isLoading">Sign In</span>
+        <div class="loading-spinner" *ngIf="isLoading">
+          <span></span><span></span><span></span>
+        </div>
+      </button>
+    </form>
+    
+    <div class="legal-info">
+      <p class="terms">By signing in, you agree to our <a routerLink="/terms">Terms of Service</a></p>
+      <p class="copyright">© 2024-2025 OBIX Financial Intelligence. All rights reserved.</p>
+    </div>
+  </div>
+</div> 

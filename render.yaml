@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: obix-chatbot-backend
+    env: python
+    region: ohio
+    buildCommand: cd obix-chatbot-backend && pip install -r requirements.txt
+    startCommand: cd obix-chatbot-backend && gunicorn debt_chatbot.wsgi:application --log-file -
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: false
+      - key: ALLOWED_HOSTS
+        value: '*.onrender.com,localhost,127.0.0.1'
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: obix-chatbot-db
+          property: connectionString
+
+  - type: web
+    name: obix-chatbot-frontend
+    env: node
+    region: ohio
+    buildCommand: cd obix-chatbot && npm install && npm run build
+    startCommand: cd obix-chatbot && node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: API_URL
+        value: https://obix-chatbot-backend.onrender.com
+      - key: PORT
+        value: 10000
+
+databases:
+  - name: obix-chatbot-db
+    databaseName: obix_chatbot_db
+    user: obix_user
+    region: ohio
+    plan: free 

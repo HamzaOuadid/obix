@@ -1,0 +1,42 @@
+<div class="chat-container">
+  <div class="chat-header">
+    <h1>
+      <img src="assets/obix.svg" alt="OBIX" class="header-logo">
+    </h1>
+    <button class="logout-button" (click)="logout()">
+      <i class="fas fa-sign-out-alt"></i>
+      Logout
+    </button>
+  </div>
+
+  <div class="messages" #messagesContainer>
+    <div *ngFor="let message of messages" 
+         [ngClass]="{'message': true, 'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant'}">
+      <div class="message-content">
+        <p [ngClass]="{'typing': message.isTyping}">{{ message.displayContent }}</p>
+        <div class="typing-indicator" *ngIf="message.isTyping">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <span class="timestamp">{{ message.timestamp | date:'shortTime' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <form [formGroup]="chatForm" class="input-container" (ngSubmit)="sendMessage()">
+    <input type="text" 
+           formControlName="messageInput"
+           placeholder="Type your message..."
+           (keydown.enter)="onEnterKey($event)">
+    <button type="submit" 
+            [disabled]="isLoading || !chatForm.get('messageInput')?.value?.trim()">
+      <span *ngIf="!isLoading">Send</span>
+      <span *ngIf="isLoading">...</span>
+    </button>
+  </form>
+  
+  <div class="footer">
+    <p class="copyright">© 2024-2025 OBIX Financial Intelligence. All rights reserved.</p>
+  </div>
+</div>

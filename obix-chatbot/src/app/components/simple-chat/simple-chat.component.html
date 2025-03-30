@@ -1,0 +1,22 @@
+<div class="chat-container">
+  <div class="header">
+    <h1>DEBT</h1>
+    <button (click)="logout()">Logout</button>
+  </div>
+
+  <div class="messages" #messagesContainer>
+    <div *ngFor="let message of messages" class="message" [class.user]="message.role === 'user'" [class.assistant]="message.role === 'assistant'">
+      <div class="content">
+        <p>{{ message.content }}</p>
+        <small>{{ message.timestamp | date:'shortTime' }}</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <input type="text" [(ngModel)]="messageInput" placeholder="Type your message..." (keyup.enter)="sendMessage()">
+    <button (click)="sendMessage()" [disabled]="isLoading || !messageInput.trim()">
+      {{ isLoading ? '...' : 'Send' }}
+    </button>
+  </div>
+</div>

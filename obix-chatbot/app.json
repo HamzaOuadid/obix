@@ -1,0 +1,21 @@
+{
+  "name": "DEBT Chatbot Frontend",
+  "description": "Angular frontend for the DEBT Chatbot application",
+  "repository": "https://github.com/yourusername/debt-chatbot",
+  "keywords": ["angular", "node", "javascript", "typescript", "chatbot"],
+  "env": {
+    "NPM_CONFIG_PRODUCTION": {
+      "description": "Ensures devDependencies are installed for build process",
+      "value": "false"
+    },
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+} 
