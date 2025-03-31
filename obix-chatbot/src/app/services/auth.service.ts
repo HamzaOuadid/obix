@@ -87,6 +87,9 @@ export class AuthService {
   login(username: string, password: string): Observable<User> {
     console.log('Attempting login with:', username);
     
+    // Use hardcoded URL for now - bypassing environment variables
+    const serverUrl = 'http://157.230.65.142/api';
+    
     // First get CSRF token, then attempt login
     return this.getCSRFToken().pipe(
       switchMap(token => {
@@ -106,7 +109,7 @@ export class AuthService {
         });
 
         // Make a POST request to the Django login endpoint
-        return this.http.post<any>(`${this.apiUrl}/`, loginData, {
+        return this.http.post<any>(`${serverUrl}/`, loginData, {
           headers,
           withCredentials: true
         });
@@ -138,7 +141,10 @@ export class AuthService {
   }
 
   logout(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/logout/`, {
+    // Use hardcoded URL for now - bypassing environment variables
+    const serverUrl = 'http://157.230.65.142/api';
+    
+    return this.http.get(`${serverUrl}/logout/`, {
       withCredentials: true
     }).pipe(
       tap(() => {
@@ -189,9 +195,11 @@ export class AuthService {
    * Fetches CSRF token from the server
    */
   private getCSRFToken(): Observable<string> {
-    console.log('GET request to', `${this.apiUrl}/get-csrf-token/`);
+    // Use hardcoded URL for now - bypassing environment variables
+    const serverUrl = 'http://157.230.65.142/api';
+    console.log('GET request to', `${serverUrl}/get-csrf-token/`);
     
-    return this.http.get<{csrfToken: string}>(`${this.apiUrl}/get-csrf-token/`, {
+    return this.http.get<{csrfToken: string}>(`${serverUrl}/get-csrf-token/`, {
       withCredentials: true
     }).pipe(
       tap(response => console.log('CSRF token response received')),

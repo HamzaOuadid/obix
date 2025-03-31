@@ -29,9 +29,12 @@ export class ChatService {
     console.log('Sending user message:', content);
     this.addMessage(content, 'user');
 
+    // Use hardcoded URL for now - bypassing environment variables
+    const serverUrl = 'http://157.230.65.142/api';
+
     // Send message to backend with credentials
     return this.http.post<ChatResponse>(
-      `${this.apiUrl}/chat/`, 
+      `${serverUrl}/chat/`, 
       { message: content },
       { withCredentials: true }
     )
