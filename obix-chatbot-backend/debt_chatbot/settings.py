@@ -85,14 +85,7 @@ CORS_ALLOW_HEADERS = [
 CSRF_COOKIE_HTTPONLY = True  # This prevents JavaScript from accessing the CSRF token
 CSRF_COOKIE_SAMESITE = 'Lax'  # Default to Lax for better security while maintaining usability
 SESSION_COOKIE_SAMESITE = 'Lax'
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:4200", 
-    "http://127.0.0.1:4200",
-    "https://obix-chatbot-frontend.onrender.com",  # Render frontend
-    "https://obix-chatbot.onrender.com",  # Alternative Render domain
-    "http://157.230.65.142",  # Digital Ocean server
-    "https://157.230.65.142"  # Digital Ocean server with HTTPS
-]
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1', 'http://157.230.65.142']
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_USE_SESSIONS = True  # Store CSRF tokens in the session for better security
