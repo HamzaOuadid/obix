@@ -19,7 +19,8 @@ ALLOWED_HOSTS = [
     'obix-chatbot-backend.onrender.com',  # Render backend
     'obix-chatbot.onrender.com',          # Alternative Render domain
     'localhost', 
-    '127.0.0.1'
+    '127.0.0.1',
+    '157.230.65.142',                     # Digital Ocean Droplet IP
 ]
 
 # Application definition
@@ -54,7 +55,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",  # Angular dev server
     "http://127.0.0.1:4200",
     "https://obix-chatbot-frontend.onrender.com",  # Render frontend
-    "https://obix-chatbot.onrender.com"  # Alternative Render domain
+    "https://obix-chatbot.onrender.com",  # Alternative Render domain
+    "http://157.230.65.142",  # Digital Ocean server
+    "https://157.230.65.142"  # Digital Ocean server with HTTPS
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -86,7 +89,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:4200", 
     "http://127.0.0.1:4200",
     "https://obix-chatbot-frontend.onrender.com",  # Render frontend
-    "https://obix-chatbot.onrender.com"  # Alternative Render domain
+    "https://obix-chatbot.onrender.com",  # Alternative Render domain
+    "http://157.230.65.142",  # Digital Ocean server
+    "https://157.230.65.142"  # Digital Ocean server with HTTPS
 ]
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
