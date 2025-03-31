@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, from, throwError, switchMap } from 'rxjs';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { catchError, tap, map } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { delay } from 'rxjs/operators';
 
 export interface UserProfile {
   firstName: string;
@@ -17,13 +15,14 @@ export interface User {
   profile: UserProfile;
 }
 
-const DEFAULT_USER: User = {
-  id: '',
-  username: 'guest',
-  email: '',
+// Hard-coded user for POC
+const HARD_CODED_USER: User = {
+  id: '1',
+  username: 'demo',
+  email: 'demo@example.com',
   profile: {
-    firstName: '',
-    lastName: '',
+    firstName: 'Demo',
+    lastName: 'User',
     avatar: ''
   }
 };
@@ -32,182 +31,67 @@ const DEFAULT_USER: User = {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = environment.apiUrl;
-  private currentUserSubject = new BehaviorSubject<User>(DEFAULT_USER);
+  private currentUserSubject = new BehaviorSubject<User | null>(null);
   currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    // Initialize with default user to ensure profile always exists
+  constructor() {
+    // Check if user already exists in localStorage
     this.loadUserFromStorage();
   }
 
   private loadUserFromStorage(): void {
-    try {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        // Ensure all required properties exist
-        const user: User = {
-          ...DEFAULT_USER,
-          ...parsedUser,
-          profile: {
-            ...DEFAULT_USER.profile,
-            ...(parsedUser.profile || {})
-          }
-        };
-        this.currentUserSubject.next(user);
-      } else {
-        // If no stored user, use default user
-        this.currentUserSubject.next(DEFAULT_USER);
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      try {
+        this.currentUserSubject.next(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error loading user from storage:', error);
+        localStorage.removeItem('currentUser');
       }
-    } catch (error) {
-      console.error('Error loading user from storage:', error);
-      this.resetUserState();
     }
   }
 
-  private resetUserState(): void {
-    localStorage.removeItem('currentUser');
-    this.currentUserSubject.next(DEFAULT_USER);
-  }
-
-  getCurrentUser(): User {
-    const user = this.currentUserSubject.value;
-    // Always return a valid user with profile
-    return {
-      ...DEFAULT_USER,
-      ...user,
-      profile: {
-        ...DEFAULT_USER.profile,
-        ...(user.profile || {})
-      }
-    };
+  getCurrentUser(): User | null {
+    return this.currentUserSubject.value;
   }
 
   login(username: string, password: string): Observable<User> {
-    console.log('Attempting login with:', username);
+    console.log('Using hard-coded user login for POC');
     
-    // Use hardcoded URL for now - bypassing environment variables
-    const serverUrl = 'http://157.230.65.142/api';
-    
-    // First get CSRF token, then attempt login
-    return this.getCSRFToken().pipe(
-      switchMap(token => {
-        console.log('Obtained CSRF token, proceeding with login');
-        
-        // For API login, send JSON instead of FormData
-        const loginData = {
-          username: username,
-          password: password
-        };
-
-        // Set up headers for JSON content
-        const headers = new HttpHeaders({
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': token
-        });
-
-        // Make a POST request to the Django login endpoint
-        return this.http.post<any>(`${serverUrl}/`, loginData, {
-          headers,
-          withCredentials: true
-        });
-      }),
-      tap(response => {
-        console.log('Login response:', response);
-        
-        // Create a user object based on successful login
-        const user: User = {
-          ...DEFAULT_USER,
-          id: '1', 
-          username: username,
-          email: username,
-          profile: {
-            ...DEFAULT_USER.profile
-          }
-        };
-        
-        // Store the user
-        this.setCurrentUser(user);
-      }),
-      catchError(error => {
-        console.error('Login error:', error);
-        return throwError(() => new Error('Invalid credentials'));
-      }),
-      // Map the response to return a User object
-      map(() => this.getCurrentUser())
+    // Simulate network delay
+    return of(HARD_CODED_USER).pipe(
+      delay(800), // Add a small delay to simulate network request
     );
   }
 
-  logout(): Observable<any> {
-    // Use hardcoded URL for now - bypassing environment variables
-    const serverUrl = 'http://157.230.65.142/api';
-    
-    return this.http.get(`${serverUrl}/logout/`, {
-      withCredentials: true
-    }).pipe(
-      tap(() => {
-        this.resetUserState();
-      }),
-      catchError(error => {
-        console.error('Logout error:', error);
-        // Still reset the user state even if the server request fails
-        this.resetUserState();
-        return throwError(() => new Error('Error during logout'));
-      })
-    );
+  loginSuccess(user: User = HARD_CODED_USER): void {
+    // Store user in localStorage
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    this.currentUserSubject.next(user);
   }
 
-  private setCurrentUser(user: User): void {
-    // Ensure profile exists with all required properties
-    const safeUser: User = {
-      ...DEFAULT_USER,
-      ...user,
-      profile: {
-        ...DEFAULT_USER.profile,
-        ...(user.profile || {})
-      }
-    };
-    
-    localStorage.setItem('currentUser', JSON.stringify(safeUser));
-    this.currentUserSubject.next(safeUser);
+  logout(): Observable<void> {
+    localStorage.removeItem('currentUser');
+    this.currentUserSubject.next(null);
+    return of(void 0).pipe(delay(300)); // Simulate network delay
   }
 
   isLoggedIn(): boolean {
-    const user = this.currentUserSubject.value;
-    return user.id !== DEFAULT_USER.id;
+    return !!this.currentUserSubject.value;
   }
 
   updateProfile(profile: Partial<UserProfile>): void {
     const currentUser = this.getCurrentUser();
-    const updatedUser: User = {
-      ...currentUser,
-      profile: {
-        ...currentUser.profile,
-        ...profile
-      }
-    };
-    this.setCurrentUser(updatedUser);
-  }
-
-  /**
-   * Fetches CSRF token from the server
-   */
-  private getCSRFToken(): Observable<string> {
-    // Use hardcoded URL for now - bypassing environment variables
-    const serverUrl = 'http://157.230.65.142/api';
-    console.log('GET request to', `${serverUrl}/get-csrf-token/`);
-    
-    return this.http.get<{csrfToken: string}>(`${serverUrl}/get-csrf-token/`, {
-      withCredentials: true
-    }).pipe(
-      tap(response => console.log('CSRF token response received')),
-      map(response => response.csrfToken),
-      catchError(error => {
-        console.error('Error fetching CSRF token:', error);
-        return throwError(() => new Error('Failed to fetch CSRF token'));
-      })
-    );
+    if (currentUser) {
+      const updatedUser: User = {
+        ...currentUser,
+        profile: {
+          ...currentUser.profile,
+          ...profile
+        }
+      };
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      this.currentUserSubject.next(updatedUser);
+    }
   }
 } 

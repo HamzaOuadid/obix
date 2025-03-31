@@ -25,8 +25,8 @@ export class LoginComponent implements OnInit {
     private http: HttpClient
   ) {
     this.loginForm = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(2)]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      username: ['demo', [Validators.required, Validators.minLength(2)]],
+      password: ['password', [Validators.required, Validators.minLength(6)]]
     });
     
     console.log('Login component constructed');
@@ -59,12 +59,20 @@ export class LoginComponent implements OnInit {
     } else {
       console.log('No active session found, showing login page');
       
-      // Empty username and password fields by default
+      // Prefill with demo credentials for POC
       this.loginForm.patchValue({
-        username: '',
-        password: ''
+        username: 'demo',
+        password: 'password'
       });
+      
+      // Optional: Auto-login for POC
+      // this.autoLogin();
     }
+  }
+  
+  // Automatically log in with hard-coded credentials
+  autoLogin(): void {
+    this.onSubmit();
   }
 
   onSubmit(): void {
@@ -77,8 +85,9 @@ export class LoginComponent implements OnInit {
     const password = this.loginForm.get('password')?.value;
     
     this.authService.login(username, password).subscribe({
-      next: () => {
-        console.log('Login successful');
+      next: (user) => {
+        console.log('Login successful with demo user');
+        this.authService.loginSuccess(user);
         this.router.navigate(['/chat']);
       },
       error: (error) => {

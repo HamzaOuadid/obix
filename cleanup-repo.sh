@@ -1,73 +1,29 @@
 #!/bin/bash
 
-# Color codes for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
+# This script cleans up the repository before committing
 
-echo -e "${YELLOW}===== Cleaning up repository =====${NC}"
+# Remove unnecessary files and directories
+echo "Cleaning up repository..."
 
-# Files to keep
-KEEP_FILES=(
-  "README.md"
-  "digital-ocean-setup.sh"
-  "fix-linux-deployment.sh"
-  "docker-compose.yml"
-  ".env"
-  ".env.example"
-  ".gitignore"
-  "LICENSE"
-  "start.sh"
-  "cleanup-repo.sh"
-)
+# Convert line endings to LF for shell scripts
+find . -name "*.sh" -type f -exec sed -i 's/\r$//' {} \;
 
-# These directories should be kept
-KEEP_DIRS=(
-  "obix-chatbot-backend"
-  "obix-chatbot"
-  "nginx"
-  ".git"
-)
+# Make all shell scripts executable
+find . -name "*.sh" -type f -exec chmod +x {} \;
 
-# Delete unnecessary files
-echo -e "${YELLOW}Deleting unnecessary files...${NC}"
+# Remove node_modules directories
+echo "Removing node_modules directories..."
+find . -name "node_modules" -type d -exec rm -rf {} +
 
-# First list the files to be deleted
-echo -e "${YELLOW}The following files will be deleted:${NC}"
-for file in *; do
-  if [[ -f "$file" && ! " ${KEEP_FILES[@]} " =~ " ${file} " ]]; then
-    echo "  - $file"
-  fi
-done
+# Remove Docker volumes and temporary files
+echo "Removing Docker volumes and temporary files..."
+find . -name "__pycache__" -type d -exec rm -rf {} +
+find . -name "*.pyc" -type f -exec rm -f {} \;
+find . -name ".DS_Store" -type f -exec rm -f {} \;
 
-# Confirm deletion
-read -p "Proceed with deletion? (y/n) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  echo -e "${RED}Deletion aborted${NC}"
-  exit 1
-fi
+# Clean up any temp or dist files
+echo "Cleaning up temporary and build files..."
+find . -name "dist" -type d -exec rm -rf {} +
+find . -name ".angular" -type d -exec rm -rf {} +
 
-# Execute deletion
-for file in *; do
-  if [[ -f "$file" && ! " ${KEEP_FILES[@]} " =~ " ${file} " ]]; then
-    rm -f "$file"
-    echo -e "${GREEN}Deleted: $file${NC}"
-  fi
-done
-
-echo -e "${GREEN}===== Repository cleaned up =====${NC}"
-
-# Commit changes
-echo -e "${YELLOW}Do you want to commit and push these changes? (y/n)${NC}"
-read -p "" -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  git add .
-  git commit -m "Clean up repository by removing unnecessary files"
-  git push
-  echo -e "${GREEN}Changes committed and pushed${NC}"
-else
-  echo -e "${YELLOW}Changes not committed. You can manually commit and push later.${NC}"
-fi 
+echo "Cleanup completed successfully!" 
