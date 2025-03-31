@@ -189,6 +189,8 @@ export class AuthService {
    * Fetches CSRF token from the server
    */
   private getCSRFToken(): Observable<string> {
+    console.log('GET request to', `${this.apiUrl}/get-csrf-token/`);
+    
     return this.http.get<{csrfToken: string}>(`${this.apiUrl}/get-csrf-token/`, {
       withCredentials: true
     }).pipe(

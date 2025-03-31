@@ -2,7 +2,7 @@ export const environment = {
   production: false,
   
   // API Configuration
-  apiUrl: 'https://157.230.65.142/api',
+  apiUrl: 'http://157.230.65.142/api',
   
   // Mistral API Configuration - Now managed by the backend
   useMistralApi: true, // We're now using the backend API which uses Mistral
