@@ -1,0 +1,13 @@
+[Unit]
+Description=OBIX Chatbot gunicorn daemon
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/root/obix/obix-chatbot-backend
+ExecStart=/usr/local/bin/gunicorn --config gunicorn.conf.py debt_chatbot.wsgi:application
+Restart=always
+
+[Install]
+WantedBy=multi-user.target 

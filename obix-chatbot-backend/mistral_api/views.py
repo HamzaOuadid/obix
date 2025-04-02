@@ -1,12 +1,12 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 import requests
 import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Conversation, Message
 from .serializers import (
     ConversationSerializer,
@@ -14,23 +14,19 @@ from .serializers import (
     ChatResponseSerializer
 )
 import os
-import json
 import logging
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
 from django.middleware.csrf import get_token
-from dotenv import load_dotenv
+from django.conf import settings
+import google.generativeai as genai
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
-
-# Gemini API key and endpoint
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
+# Configure Gemini model
+genai.configure(api_key=settings.GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-pro')
 
 # OBIX system prompt
 SYSTEM_PROMPT = """
@@ -82,7 +78,7 @@ def call_gemini_api(prompt, user_message):
     """
     Call the Gemini API with the system prompt and user message
     """
-    url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={settings.GEMINI_API_KEY}"
     
     # Format the request as per Gemini API requirements
     payload = {
@@ -201,54 +197,49 @@ def chat(request):
             'error': str(e)
         }, status=500)
 
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    """Return CSRF token for the frontend."""
+    return JsonResponse({'csrfToken': get_token(request)})
+
 class ChatView(APIView):
-    """
-    API endpoint for chat interactions.
-    """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
+    
+    @ensure_csrf_cookie
+    def get(self, request):
+        """Handle GET request - return CSRF token."""
+        response = JsonResponse({'csrfToken': get_token(request)})
+        response['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+        response['Access-Control-Allow-Credentials'] = 'true'
+        return response
     
     def post(self, request):
+        """Handle chat messages."""
         try:
-            message = request.data.get('message')
-            if not message:
-                return Response(
-                    {'error': 'Message is required'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            data = json.loads(request.body)
+            user_message = data.get('message', '')
             
-            # Call Gemini API
-            response = call_gemini_api(SYSTEM_PROMPT, message)
+            # Generate response using Gemini
+            chat = model.start_chat(history=[])
+            response = chat.send_message(f"{SYSTEM_PROMPT}\n\nUser: {user_message}")
             
-            # Check if this is a financial query
-            financial_query = is_financial_query(message)
-            logger.info(f"Is financial query: {financial_query}")
-            
-            # For financial queries, append a DEBT recommendation
-            if financial_query:
-                response += get_debt_recommendation()
-            
-            # Create conversation and messages, associate with the current user
-            conversation = Conversation.objects.create(user=request.user)
-            Message.objects.create(
-                conversation=conversation,
-                role='user',
-                content=message
-            )
-            Message.objects.create(
-                conversation=conversation,
-                role='assistant',
-                content=response
-            )
-            
-            serializer = ChatResponseSerializer({'response': response})
-            return Response(serializer.data)
+            response_data = JsonResponse({
+                'message': response.text,
+                'success': True
+            })
+            response_data['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+            response_data['Access-Control-Allow-Credentials'] = 'true'
+            return response_data
             
         except Exception as e:
-            logger.error(f"Error in ChatView: {str(e)}", exc_info=True)
-            return Response(
-                {'error': str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            logger.error(f"Error in chat endpoint: {str(e)}")
+            error_response = JsonResponse({
+                'error': str(e),
+                'success': False
+            }, status=500)
+            error_response['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+            error_response['Access-Control-Allow-Credentials'] = 'true'
+            return error_response
 
 class ConversationListView(APIView):
     """
@@ -330,12 +321,4 @@ def login_view(request):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('login')
-
-def get_csrf_token(request):
-    """
-    View to return a CSRF token for clients that need it
-    """
-    csrf_token = get_token(request)
-    logger.info(f"Generated CSRF token for user")
-    return JsonResponse({'csrfToken': csrf_token}) 
+    return redirect('login') 

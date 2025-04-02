@@ -1,26 +1,25 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
-import dj_database_url
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key-for-development-only')
+SECRET_KEY = 'django-insecure-fallback-key-for-development-only'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = True
+
+# API key hardcoded for POC
+GEMINI_API_KEY = 'AIzaSyA53Q5ntPOItolX3GBUYLPVztRXzFxXgF8'
 
 ALLOWED_HOSTS = [
     'obix-chatbot-backend.onrender.com',  # Render backend
     'obix-chatbot.onrender.com',          # Alternative Render domain
     'localhost', 
     '127.0.0.1',
-    '157.230.65.142',                     # Digital Ocean Droplet IP
+    '157.230.65.142',                     # Digital Ocean Droplet public IP
+    '10.116.0.2',                         # Digital Ocean Droplet private IP
 ]
 
 # Application definition
@@ -32,34 +31,33 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders',  # Add CORS headers app
+    'corsheaders',
     'mistral_api',
-    'whitenoise.runserver_nostatic',  # Add whitenoise for static files
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise middleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # Add CORS middleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debt_chatbot.middleware.ContentSecurityPolicyMiddleware',  # Add CSP middleware
 ]
 
 # CORS settings
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for development
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",  # Angular dev server
-    "http://127.0.0.1:4200",
-    "https://obix-chatbot-frontend.onrender.com",  # Render frontend
-    "https://obix-chatbot.onrender.com",  # Alternative Render domain
-    "http://157.230.65.142",  # Digital Ocean server
-    "https://157.230.65.142"  # Digital Ocean server with HTTPS
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost',
+    'http://127.0.0.1',
+    'https://obix-chatbot.onrender.com',
+    'http://157.230.65.142',  # Digital Ocean Droplet public IP
+    'http://10.116.0.2',      # Digital Ocean Droplet private IP
 ]
-
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -81,37 +79,49 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# CSRF and Session settings
-CSRF_COOKIE_HTTPONLY = True  # This prevents JavaScript from accessing the CSRF token
-CSRF_COOKIE_SAMESITE = 'Lax'  # Default to Lax for better security while maintaining usability
-SESSION_COOKIE_SAMESITE = 'Lax'
-CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1', 'http://157.230.65.142']
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
-CSRF_USE_SESSIONS = True  # Store CSRF tokens in the session for better security
-
-ROOT_URLCONF = 'debt_chatbot.urls'
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
+# Security Settings
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost',
+    'http://127.0.0.1',
+    'https://obix-chatbot.onrender.com',
+    'http://157.230.65.142',  # Digital Ocean Droplet public IP
+    'http://10.116.0.2',      # Digital Ocean Droplet private IP
 ]
 
-WSGI_APPLICATION = 'debt_chatbot.wsgi.application'
+# For development, we'll disable some security settings
+if DEBUG:
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins in development
+    CSRF_COOKIE_DOMAIN = None  # Allow cookies for all domains in development
+    SESSION_COOKIE_DOMAIN = None  # Allow cookies for all domains in development
+else:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CORS_ALLOW_ALL_ORIGINS = False  # Restrict origins in production
 
-# Database
-# Use SQLite locally, PostgreSQL on Heroku
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# CSRF settings
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript access to CSRF token
+CSRF_USE_SESSIONS = False     # Store CSRF token in cookie
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Static files
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
+
+# Database settings - Using SQLite for POC
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -119,25 +129,26 @@ DATABASES = {
     }
 }
 
-# Update database configuration with $DATABASE_URL
-db_from_env = dj_database_url.config(conn_max_age=600)
-DATABASES['default'].update(db_from_env)
+# Rest Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day'
+    }
+}
 
-# Password validation
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+ROOT_URLCONF = 'debt_chatbot.urls'
+WSGI_APPLICATION = 'debt_chatbot.wsgi.application'
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
@@ -145,98 +156,19 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Rest Framework settings
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ],
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '20/day',
-        'user': '1000/day'
-    }
-}
-
-# Authentication settings
-LOGIN_URL = '/api/'  # Set the login URL to the API login route
-LOGIN_REDIRECT_URL = '/api/chat/'  # Redirect to chat after login
-LOGOUT_REDIRECT_URL = '/api/'  # Redirect to login after logout
-
-# Security settings
-SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevents browser from trying to guess content type
-SECURE_BROWSER_XSS_FILTER = True  # Enables XSS filtering in most browsers
-X_FRAME_OPTIONS = 'DENY'  # Prevents clickjacking via iframes
-
-# Heroku settings (still applied if DYNO environment variable exists)
-if 'DYNO' in os.environ:
-    # Security settings for production
-    SECURE_SSL_REDIRECT = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    
-    # API key from environment
-    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 
 # Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
-    'filters': {
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        },
-    },
     'handlers': {
         'console': {
-            'level': 'INFO',
-            'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-        'file': {
-            'level': 'WARNING',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'formatter': 'verbose',
         },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'mistral_api': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
     },
 } 
