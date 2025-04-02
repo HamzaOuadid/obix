@@ -1,14 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HttpClientModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, HttpClientModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
@@ -20,7 +19,6 @@ export class LoginComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private authService: AuthService,
     private router: Router,
     private http: HttpClient
   ) {
@@ -42,28 +40,12 @@ export class LoginComponent implements OnInit {
   }
   
   ngOnInit(): void {
-    if (this.authService.isLoggedIn()) {
-      this.router.navigate(['/chat']);
-    }
+    // Automatically redirect to chat without authentication
+    this.router.navigate(['/chat']);
   }
 
   onSubmit(): void {
-    if (this.loginForm.valid) {
-      this.isLoading = true;
-      this.errorMessage = '';
-      
-      const { username, password } = this.loginForm.value;
-      
-      this.authService.login(username, password).subscribe({
-        next: (response) => {
-          this.isLoading = false;
-          this.router.navigate(['/chat']);
-        },
-        error: (error) => {
-          this.isLoading = false;
-          this.errorMessage = error.error?.message || 'Login failed. Please try again.';
-        }
-      });
-    }
+    // Directly navigate to chat without any login logic
+    this.router.navigate(['/chat']);
   }
-} 
+}

@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, catchError, throwError } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
+import { tap, map, catchError } from 'rxjs/operators';
 
 export interface Message {
   content: string;
@@ -18,70 +17,30 @@ export interface ChatResponse {
   providedIn: 'root'
 })
 export class ChatService {
-  private apiUrl = environment.apiUrl;
+  private apiUrl = 'http://157.230.65.142/api'; // Corrected API URL
   private messagesSubject = new BehaviorSubject<Message[]>([]);
   messages$ = this.messagesSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
   sendMessage(content: string): Observable<string> {
-    // Add user message to the messages array
     console.log('Sending user message:', content);
     this.addMessage(content, 'user');
 
-    // Use hardcoded URL for now - bypassing environment variables
-    const serverUrl = 'http://157.230.65.142/api';
-
-    // Send message to backend with credentials
+    // Send message to backend
     return this.http.post<ChatResponse>(
-      `${serverUrl}/chat/`, 
-      { message: content },
-      { withCredentials: true }
-    )
-    .pipe(
+      `${this.apiUrl}/chat/`, // Ensure the endpoint is correct
+      { message: content }
+    ).pipe(
       tap(response => {
-        console.log('Received response type:', typeof response);
-        console.log('Received raw response:', response);
-        
-        // Validate response
-        if (!response) {
-          console.warn('Received null response from server');
-          throw new Error('Empty response received');
+        if (response && response.response) {
+          this.addMessage(response.response, 'assistant');
         }
-        
-        // Ensure response has the response property
-        let responseText = '';
-        if (typeof response === 'object' && response.response) {
-          responseText = response.response;
-        } else if (typeof response === 'string') {
-          responseText = response;
-        } else {
-          responseText = JSON.stringify(response);
-        }
-        
-        console.log('Processed response text:', responseText.substring(0, 50) + '...');
-        
-        // Add assistant's response to messages
-        this.addMessage(responseText, 'assistant');
       }),
-      map(response => {
-        if (typeof response === 'object' && response.response) {
-          return response.response;
-        }
-        return JSON.stringify(response);
-      }),
+      map(response => response.response),
       catchError(error => {
         console.error('Error sending message:', error);
-        
-        // Add a system error message to indicate the problem
-        if (error.status === 0) {
-          this.addSystemMessage("Network error. Please check your connection.");
-        } else if (error.status === 401 || error.status === 403) {
-          this.addSystemMessage("Authentication error. Please log in again.");
-        } else {
-          this.addSystemMessage("Sorry, I couldn't process your request. Please try again.");
-        }
-        
+        this.addSystemMessage("Sorry, I couldn't process your request. Please try again.");
         return throwError(() => new Error('Failed to send message: ' + (error.message || 'Unknown error')));
       })
     );
@@ -94,13 +53,9 @@ export class ChatService {
       timestamp: new Date()
     };
     const currentMessages = this.messagesSubject.value;
-    
-    // Create a new array to ensure change detection
-    const newMessages = [...currentMessages, message];
-    console.log(`Adding ${role} message. Message count: ${newMessages.length}`);
-    this.messagesSubject.next(newMessages);
+    this.messagesSubject.next([...currentMessages, message]);
   }
-  
+
   addSystemMessage(content: string): void {
     this.addMessage(content, 'assistant');
   }

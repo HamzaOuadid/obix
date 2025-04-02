@@ -3,7 +3,7 @@
     <h1>
       <img src="assets/obix.svg" alt="OBIX" class="header-logo">
     </h1>
-    <button class="logout-button" (click)="logout()">
+    <button class="logout-button">
       <i class="fas fa-sign-out-alt"></i>
       Logout
     </button>
@@ -13,12 +13,7 @@
     <div *ngFor="let message of messages" 
          [ngClass]="{'message': true, 'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant'}">
       <div class="message-content">
-        <p [ngClass]="{'typing': message.isTyping}">{{ message.displayContent }}</p>
-        <div class="typing-indicator" *ngIf="message.isTyping">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
+        <p>{{ message.content }}</p>
         <span class="timestamp">{{ message.timestamp | date:'shortTime' }}</span>
       </div>
     </div>
@@ -27,8 +22,7 @@
   <form [formGroup]="chatForm" class="input-container" (ngSubmit)="sendMessage()">
     <input type="text" 
            formControlName="messageInput"
-           placeholder="Type your message..."
-           (keydown.enter)="onEnterKey($event)">
+           placeholder="Type your message...">
     <button type="submit" 
             [disabled]="isLoading || !chatForm.get('messageInput')?.value?.trim()">
       <span *ngIf="!isLoading">Send</span>
