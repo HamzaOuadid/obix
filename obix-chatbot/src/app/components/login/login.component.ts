@@ -25,8 +25,8 @@ export class LoginComponent implements OnInit {
     private http: HttpClient
   ) {
     this.loginForm = this.fb.group({
-      username: ['demo', [Validators.required, Validators.minLength(2)]],
-      password: ['password', [Validators.required, Validators.minLength(6)]]
+      username: ['', [Validators.required]],
+      password: ['', [Validators.required]]
     });
     
     console.log('Login component constructed');
@@ -52,7 +52,7 @@ export class LoginComponent implements OnInit {
   }
   
   ngOnInit(): void {
-    // Redirect to chat if already logged in
+    // Check if user is already logged in
     if (this.authService.isLoggedIn()) {
       console.log('User is already logged in, redirecting to chat');
       this.router.navigate(['/chat']);
@@ -76,25 +76,22 @@ export class LoginComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.loginForm.invalid) return;
-    
-    this.isLoading = true;
-    this.errorMessage = '';
-    
-    const username = this.loginForm.get('username')?.value;
-    const password = this.loginForm.get('password')?.value;
-    
-    this.authService.login(username, password).subscribe({
-      next: (user) => {
-        console.log('Login successful with demo user');
-        this.authService.loginSuccess(user);
-        this.router.navigate(['/chat']);
-      },
-      error: (error) => {
-        console.error('Login error:', error);
-        this.errorMessage = 'Invalid username or password';
-        this.isLoading = false;
-      }
-    });
+    if (this.loginForm.valid) {
+      this.isLoading = true;
+      this.errorMessage = '';
+      
+      const { username, password } = this.loginForm.value;
+      
+      this.authService.login(username, password).subscribe({
+        next: (response) => {
+          this.isLoading = false;
+          this.router.navigate(['/chat']);
+        },
+        error: (error) => {
+          this.isLoading = false;
+          this.errorMessage = error.error?.message || 'Login failed. Please try again.';
+        }
+      });
+    }
   }
 } 
