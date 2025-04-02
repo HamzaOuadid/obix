@@ -5,11 +5,6 @@
     </div>
     <p class="subtitle">Your personal financial assistant</p>
     
-    <div class="demo-notice">
-      <strong>POC Demo Version</strong>
-      <p>Using pre-filled demo credentials - just click Sign In</p>
-    </div>
-    
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
       <div class="form-group">
         <label for="username">Username</label>
@@ -20,7 +15,6 @@
           placeholder="Enter your username" 
           [class.error]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
           autocomplete="username"
-          readonly
         >
       </div>
       
@@ -33,7 +27,6 @@
           placeholder="Enter your password" 
           [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
           autocomplete="current-password"
-          readonly
         >
       </div>
       
