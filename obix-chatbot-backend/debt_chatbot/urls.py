@@ -27,7 +27,7 @@ def direct_login(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/csrf/', get_csrf_token),
-    path('api/chat/', ChatView.as_view()),
+    # path('api/chat/', ChatView.as_view()), # Commented out as ChatView is not defined in the simplified views.py
     path('api/direct-login/', direct_login, name='direct-login'),
     path('api/', include('mistral_api.urls')),
     path('', TemplateView.as_view(template_name='base.html'), name='home'),
