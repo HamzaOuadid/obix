@@ -24,8 +24,9 @@ import google.generativeai as genai
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Configure Gemini model
-genai.configure(api_key="AIzaSyA53Q5ntPOItolX3GBUYLPVztRXzFxXgF8")
+# Configure Gemini model with hardcoded API key
+GEMINI_API_KEY = "AIzaSyA53Q5ntPOItolX3GBUYLPVztRXzFxXgF8"
+genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-pro')
 
 # OBIX system prompt
@@ -78,7 +79,7 @@ def call_gemini_api(prompt, user_message):
     """
     Call the Gemini API with the system prompt and user message
     """
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={settings.GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_API_KEY}"
     
     # Format the request as per Gemini API requirements
     payload = {
