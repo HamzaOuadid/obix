@@ -33,11 +33,5 @@ RUN mkdir -p /app/staticfiles
 # Collect static files
 RUN python manage.py collectstatic --noinput || echo "Static files collection failed, but continuing build"
 
-# Set up entrypoint
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
-ENTRYPOINT ["/app/entrypoint.sh"]
-
-# Start Gunicorn
+# Start Gunicorn directly (no entrypoint script)
 CMD ["gunicorn", "debt_chatbot.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"] 

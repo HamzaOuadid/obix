@@ -25,7 +25,7 @@ import google.generativeai as genai
 logger = logging.getLogger(__name__)
 
 # Configure Gemini model
-genai.configure(api_key=settings.GEMINI_API_KEY)
+genai.configure(api_key="AIzaSyA53Q5ntPOItolX3GBUYLPVztRXzFxXgF8")
 model = genai.GenerativeModel('gemini-pro')
 
 # OBIX system prompt

@@ -2,13 +2,15 @@ import requests
 import json
 import random
 import os
-from dotenv import load_dotenv
+import django
+from django.conf import settings
 
-# Load environment variables
-load_dotenv()
+# Configure Django settings
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'debt_chatbot.settings')
+django.setup()
 
 # Gemini API key and endpoint
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_API_KEY = settings.GEMINI_API_KEY
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
 
 def call_gemini_api(prompt, user_message):
