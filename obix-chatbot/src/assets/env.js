@@ -2,7 +2,7 @@
   window.env = window.env || {};
   
   // Environment variables for production
-  window.env.apiUrl = 'http://localhost:8000/api';
+  window.env.apiUrl = 'http://167.172.145.160:8000/api';
   
   // Function to remove any text containing "OBIX" and "Admin" from the header
   function cleanHeader() {
