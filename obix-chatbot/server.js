@@ -19,6 +19,20 @@ if (!fs.existsSync(browserPath)) {
   fs.mkdirSync(browserPath, { recursive: true });
 }
 
+// Directly serve env.js with hard-coded environment variables
+app.get('/env.js', (req, res) => {
+  console.log('Serving env.js file');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(`
+    (function(window) {
+      window.env = window.env || {};
+      
+      // Environment variables for production
+      window.env.apiUrl = 'http://localhost:8000/api';
+    })(window);
+  `);
+});
+
 const indexPath = path.join(browserPath, 'index.html');
 if (!fs.existsSync(indexPath)) {
   console.log('Creating minimal index.html');
@@ -29,6 +43,7 @@ if (!fs.existsSync(indexPath)) {
   <title>OBIX Chatbot</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="/env.js"></script>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <style>
     body {

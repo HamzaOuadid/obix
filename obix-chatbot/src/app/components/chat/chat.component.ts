@@ -1,117 +1,97 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewChecked, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { FormGroup, FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
+import { ChatService } from '../../services/chat.service';
 import { Subscription } from 'rxjs';
-import { AuthService } from '../../services/auth.service';
-import { ChatService, Message } from '../../services/chat.service';
+import { NewlineToBrPipe } from '../../pipes/newline-to-br.pipe';
+
+// Import the actual Message type from wherever it's defined in your project
+// If you can't locate it, we'll work with what we have
+interface Message {
+  content: string;
+  role: string;
+  timestamp: Date;
+  // Note: Removed id as it appears this doesn't exist in your actual Message type
+}
 
 interface DisplayMessage extends Message {
+  id: string; // Add id here instead of expecting it from Message
   displayContent: string;
   isTyping: boolean;
 }
 
 @Component({
   selector: 'app-chat',
-  standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './chat.component.html',
-  styleUrls: ['./chat.component.scss']
+  styleUrls: ['./chat.component.scss'],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    NewlineToBrPipe
+  ],
+  standalone: true
 })
 export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
-  
   chatForm: FormGroup;
   isLoading = false;
-  username = '';
   messages: DisplayMessage[] = [];
-  private typingSpeed = 1; // Super fast animation (was 10ms)
-  
   private subscriptions: Subscription[] = [];
+  private shouldScroll = false;
+  username: string = 'User';
 
   constructor(
     private chatService: ChatService,
-    private authService: AuthService,
-    private router: Router,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private cdRef: ChangeDetectorRef,
+    private router: Router
   ) {
     this.chatForm = this.fb.group({
-      messageInput: [{ value: '', disabled: false }]
+      messageInput: ['']
     });
   }
 
   ngOnInit(): void {
+    console.log('Chat component initializing');
     // Check if user is logged in
-    const user = this.authService.getCurrentUser();
-    if (!user || !this.authService.isLoggedIn()) {
-      console.log('User not logged in, redirecting to login page');
-      this.router.navigate(['/login']);
+    const authToken = localStorage.getItem('obixAuthToken');
+    if (!authToken) {
+      console.log('No auth token found, redirecting to login');
+      // Not logged in, redirect to login
+      window.location.href = './login';
       return;
     }
-    
-    console.log('User logged in:', user.username);
-    this.username = user.username || user.email || 'User';
-    
-    // Subscribe to messages
-    this.subscriptions.push(
-      this.chatService.messages$.subscribe(messages => {
-        console.log('Received messages update, count:', messages.length);
-        
-        // Process all messages
-        const displayMessages = messages.map((msg, index) => {
-          // For user messages or existing assistant messages, keep the current display content
-          const existingMsgIndex = this.messages.findIndex(m => 
-            m.timestamp?.getTime() === msg.timestamp?.getTime() && m.role === msg.role
-          );
-          
-          // If this is an existing message, keep its current display state
-          if (existingMsgIndex >= 0) {
-            return {
-              ...msg,
-              displayContent: this.messages[existingMsgIndex].displayContent,
-              isTyping: this.messages[existingMsgIndex].isTyping
-            };
-          }
-          
-          // This is a new message
-          // For user messages, show content immediately
-          // For assistant messages, prepare for animation
-          return {
-            ...msg,
-            displayContent: msg.role === 'user' ? msg.content : '',
-            isTyping: msg.role === 'assistant'
-          };
-        });
-        
-        // Update messages array
-        this.messages = displayMessages;
-        
-        // Find the last assistant message that needs animation
-        const lastAssistantIndex = this.messages.findIndex(msg => 
-          msg.role === 'assistant' && msg.isTyping
-        );
-        
-        if (lastAssistantIndex >= 0) {
-          console.log('Animating message at index:', lastAssistantIndex);
-          // Use a small timeout to ensure the DOM is updated
-          setTimeout(() => {
-            this.animateText(lastAssistantIndex, messages[lastAssistantIndex].content);
-          }, 50);
-        }
-        
-        this.scrollToBottom();
-      })
-    );
-    
-    // Clear messages on component init
-    this.chatService.clearMessages();
-    
-    // Set responsive behavior for mobile
-    this.handleResponsiveLayout();
+    console.log('Auth token found, proceeding to chat');
+
+    // Get username
+    const storedUsername = localStorage.getItem('obixUsername');
+    if (storedUsername) {
+      console.log('Username found:', storedUsername);
+      this.username = storedUsername;
+    }
+
+    console.log('Subscribing to chat service messages');
+    this.subscriptions.push(this.chatService.messages$.subscribe(messages => {
+      console.log('Received messages update:', messages);
+      // Generate ID for each message since it's not provided by the original Message type
+      this.messages = messages.map(msg => ({
+        ...msg,
+        id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        displayContent: msg.content,
+        isTyping: false
+      }));
+      
+      this.shouldScroll = true;
+      this.cdRef.detectChanges(); // Force update the view
+    }));
   }
 
   ngAfterViewChecked(): void {
-    this.scrollToBottom();
+    if (this.shouldScroll) {
+      this.scrollToBottom();
+      this.shouldScroll = false;
+    }
   }
 
   ngOnDestroy(): void {
@@ -119,136 +99,44 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   sendMessage(): void {
-    const message = this.chatForm.get('messageInput')?.value?.trim();
-    if (!message || this.isLoading) return;
-    
-    this.isLoading = true;
-    this.chatForm.get('messageInput')?.disable();
-    
-    // Send to API
-    this.chatService.sendMessage(message).subscribe({
-      next: (response) => {
-        console.log('Received response:', response);
-        this.chatForm.get('messageInput')?.setValue('');
-        this.chatForm.get('messageInput')?.enable();
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error sending message:', error);
-        
-        // Check if it's an authentication error
-        if (error.status === 401 || error.status === 403) {
-          console.log('Authentication error, redirecting to login');
-          this.router.navigate(['/login']);
-          return;
+    if (this.chatForm.valid && this.chatForm.get('messageInput')?.value?.trim()) {
+      this.isLoading = true;
+      const messageContent = this.chatForm.get('messageInput')?.value;
+      console.log('Sending message:', messageContent);
+      
+      this.chatForm.reset(); // Clear input immediately after sending
+      
+      this.chatService.sendMessage(messageContent).subscribe({
+        next: (response) => {
+          console.log('Received response:', response);
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error in chat component:', error);
+          this.isLoading = false;
         }
-        
-        this.chatForm.get('messageInput')?.enable();
-        this.isLoading = false;
-      }
-    });
+      });
+    }
   }
 
-  onEnterKey(event: Event): void {
-    const keyboardEvent = event as KeyboardEvent;
-    if (keyboardEvent.key === 'Enter' && !keyboardEvent.shiftKey) {
-      event.preventDefault();
-      this.sendMessage();
+  private scrollToBottom(): void {
+    try {
+      if (this.messagesContainer && this.messagesContainer.nativeElement) {
+        this.messagesContainer.nativeElement.scrollTop = this.messagesContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {
+      console.error('Error scrolling to bottom:', err);
     }
   }
 
   logout(): void {
-    this.authService.logout().subscribe({
-      next: () => {
-        console.log('Logged out successfully');
-        this.router.navigate(['/login']);
-      },
-      error: (error) => {
-        console.error('Error logging out:', error);
-        // Navigate to login anyway
-        this.router.navigate(['/login']);
-      }
-    });
-  }
-
-  private scrollToBottom(): void {
-    if (this.messagesContainer) {
-      this.messagesContainer.nativeElement.scrollTop = this.messagesContainer.nativeElement.scrollHeight;
-    }
-  }
-
-  private handleResponsiveLayout(): void {
-    const handleResize = () => {
-      // Add any responsive layout logic here if needed
-    };
-
-    window.addEventListener('resize', handleResize);
-    this.subscriptions.push(new Subscription(() => window.removeEventListener('resize', handleResize)));
-  }
-
-  private async animateText(messageIndex: number, fullText: string) {
-    try {
-      const message = this.messages[messageIndex];
-      if (!message) return;
-      
-      // Skip animation if text is empty
-      if (!fullText) {
-        message.displayContent = fullText;
-        message.isTyping = false;
-        return;
-      }
-      
-      message.isTyping = true;
-      message.displayContent = ''; // Start with empty content
-      
-      let charIndex = 0;
-      const charsPerInterval = 15; // Process more characters at once for faster animation
-      
-      // Use setInterval for more reliable animation
-      const intervalId = setInterval(() => {
-        // Check if message still exists
-        if (!this.messages[messageIndex]) {
-          clearInterval(intervalId);
-          return;
-        }
-        
-        // Add next batch of characters
-        const nextChunk = fullText.slice(charIndex, charIndex + charsPerInterval);
-        message.displayContent += nextChunk;
-        charIndex += charsPerInterval;
-        
-        // Force change detection
-        this.messages = [...this.messages];
-        
-        // Check if we've reached the end of the text
-        if (charIndex >= fullText.length) {
-          clearInterval(intervalId);
-          message.displayContent = fullText; // Ensure full content is shown
-          message.isTyping = false;
-          this.messages = [...this.messages];
-          this.scrollToBottom();
-        }
-      }, 10); // Very fast interval for quick typing effect
-      
-      // Safety timeout to ensure animation completes
-      setTimeout(() => {
-        clearInterval(intervalId);
-        if (this.messages[messageIndex]) {
-          this.messages[messageIndex].displayContent = fullText;
-          this.messages[messageIndex].isTyping = false;
-          this.messages = [...this.messages];
-          this.scrollToBottom();
-        }
-      }, 5000); // Fallback after 5 seconds
-    } catch (error) {
-      console.error('Animation error:', error);
-      // Fallback to immediate display if there's an error
-      if (this.messages[messageIndex]) {
-        this.messages[messageIndex].displayContent = fullText;
-        this.messages[messageIndex].isTyping = false;
-        this.messages = [...this.messages];
-        this.scrollToBottom();
-      }
-    }
+    console.log('Logging out user');
+    // Clear local storage
+    localStorage.removeItem('obixAuthToken');
+    localStorage.removeItem('obixUsername');
+    
+    // Navigate to login using direct URL
+    console.log('Redirecting to login page');
+    window.location.href = './login';
   }
 }

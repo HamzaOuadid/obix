@@ -1,43 +1,24 @@
-FROM python:3.10-slim
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV DEBIAN_FRONTEND noninteractive
+FROM python:3.11-slim
 
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    postgresql-client \
-    libpq-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Copy requirements file
+# Install dependencies
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    pip install gunicorn psycopg2-binary
-
-# Copy project
+# Copy project files
 COPY . .
 
-# Make directory for static files
-RUN mkdir -p /app/staticfiles
+# Make the startup script executable
+RUN chmod +x startup.sh
 
-# Collect static files
-RUN python manage.py collectstatic --noinput || echo "Static files collection failed, but continuing build"
+# Expose the port the app runs on
+EXPOSE 8000
 
-# Set up entrypoint
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
-ENTRYPOINT ["/app/entrypoint.sh"]
-
-# Start Gunicorn
-CMD ["gunicorn", "debt_chatbot.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"] 
+# Command to run the app using the startup script
+CMD ["./startup.sh"] 

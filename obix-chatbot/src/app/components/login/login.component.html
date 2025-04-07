@@ -3,12 +3,6 @@
     <div class="logo-container">
       <img src="assets/obix.svg" alt="OBIX" class="logo-image">
     </div>
-    <p class="subtitle">Your personal financial assistant</p>
-    
-    <div class="demo-notice">
-      <strong>POC Demo Version</strong>
-      <p>Using pre-filled demo credentials - just click Sign In</p>
-    </div>
     
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
       <div class="form-group">
@@ -20,8 +14,10 @@
           placeholder="Enter your username" 
           [class.error]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
           autocomplete="username"
-          readonly
         >
+        <div class="validation-error" *ngIf="loginForm.get('username')?.invalid && loginForm.get('username')?.touched">
+          Username is required
+        </div>
       </div>
       
       <div class="form-group">
@@ -33,8 +29,10 @@
           placeholder="Enter your password" 
           [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
           autocomplete="current-password"
-          readonly
         >
+        <div class="validation-error" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+          Password is required
+        </div>
       </div>
       
       <div class="error-message login-error" *ngIf="errorMessage">
@@ -50,8 +48,8 @@
     </form>
     
     <div class="legal-info">
-      <p class="terms">By signing in, you agree to our <a routerLink="/terms">Terms of Service</a></p>
+      <p class="terms">By signing in, you agree to our <a href="./terms">Terms of Service</a></p>
       <p class="copyright">© 2024-2025 OBIX Financial Intelligence. All rights reserved.</p>
     </div>
   </div>
-</div> 
+</div>

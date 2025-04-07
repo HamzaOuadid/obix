@@ -175,3 +175,152 @@ button:hover, .send-button:hover {
 button:active, .send-button:active {
   transform: translateY(1px);
 }
+
+/* These selectors only apply to the chat header, not login forms */
+.chat-header {
+  .header-text,
+  [class*="header-text"],
+  [class*="app-name"],
+  .app-name,
+  .username-display,
+  [class*="username-display"] {
+    display: none !important;
+  }
+}
+
+/* Only hide text next to logo in the chat header */
+.chat-header {
+  img.header-logo + *:not(button):not(.user-controls),
+  .header-logo + *:not(button):not(.user-controls),
+  .logo-container + *:not(.user-controls) {
+    display: none !important;
+  }
+}
+
+/* Target the specific pattern from the screenshot */
+.chat-header *:not(img):not(button):not(i):not(.logout-button):not(.user-controls *),
+.chat-header [class*="header"] *:not(img):not(button):not(i):not(.logout-button):not(.user-controls *) {
+  font-size: 0 !important;
+  color: transparent !important;
+  overflow: hidden !important;
+}
+
+/* Hide any text next to the OBIX logo in the header, but not user controls */
+.chat-header {
+  .logo-container:after,
+  .logo-container ~ *:not(.user-controls) {
+    display: none !important;
+  }
+}
+
+/* Hide any plain text in the header area, but not the logout button */
+.chat-header > *:not(.logo-container):not(.user-controls) {
+  display: none !important;
+}
+
+/* Make sure logout button text is visible */
+.logout-button,
+.logout-button span,
+.logout-button i,
+.user-controls button,
+.user-controls button * {
+  display: flex !important;
+  font-size: 0.875rem !important;
+  color: #e5e5e5 !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  width: auto !important;
+}
+
+/* Ensure login form elements are fully visible and properly centered */
+.login-container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  height: 100vh !important;
+  width: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+.login-card {
+  width: 100% !important;
+  max-width: 400px !important;
+  margin: 0 auto !important;
+  position: relative !important;
+}
+
+.login-container,
+.login-card,
+.login-form,
+.login-form *,
+.form-group,
+.form-group * {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  font-size: inherit !important;
+  color: inherit !important;
+}
+
+/* Fix widths for form elements */
+.login-form input {
+  width: 100% !important;
+  display: block !important;
+}
+
+.login-button {
+  width: 100% !important;
+}
+
+/* This selector specifically needs to be much more targeted to avoid affecting login forms */
+.chat-header *:not(img):not(input):not(textarea):not(script):not(style):not(link):not(meta):not(title):not(.logout-button):not(.user-controls *) {
+  &:contains("OBIX Admin") {
+    display: none !important;
+  }
+}
+
+/* Only apply to header content, not login forms */
+.chat-header *:not(img):not(input):not(textarea):not(script):not(style):not(link):not(meta):not(title):not(.logout-button):not(.user-controls *) {
+  &:contains("OBIX"), 
+  &:contains("Debug"),
+  &:contains("User") {
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    display: inline-block !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Clean chat header only, not login screens */
+.chat-container {
+  & > div.chat-header {
+    height: 60px !important;
+    background-color: #0c0c0c !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+      
+    & > .logo-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+      
+    img {
+      max-height: 40px !important;
+      height: auto !important;
+      display: block !important;
+      margin: 0 auto !important;
+    }
+  }
+}

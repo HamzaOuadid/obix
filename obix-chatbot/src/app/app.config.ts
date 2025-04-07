@@ -11,15 +11,24 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 
 import { routes } from './app.routes';
 
-// Simplified approach - use a function to handle CSRF tokens without a separate class
+// Combined interceptor for CSRF and Auth
 const authInterceptor = (req: HttpRequest<unknown>, next: HttpHandlerFn) => {
   // Always add credentials to all requests
-  const modifiedReq = req.clone({
+  let modifiedReq = req.clone({
     withCredentials: true
   });
   
   // Log the request for debugging purposes
   console.log(`${modifiedReq.method} request to ${modifiedReq.url}`);
+  
+  // Add auth token if available
+  const authToken = localStorage.getItem('obixAuthToken');
+  if (authToken) {
+    console.log('Found auth token, adding to request headers');
+    modifiedReq = modifiedReq.clone({
+      headers: modifiedReq.headers.set('Authorization', `Bearer ${authToken}`)
+    });
+  }
   
   // For POST/PUT/DELETE requests, try to get the CSRF token from cookies
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {

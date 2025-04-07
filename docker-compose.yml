@@ -1,44 +1,40 @@
-services:
-  db:
-    image: postgres:14
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    env_file:
-      - ./.env
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_DB=${POSTGRES_DB}
-    restart: always
+version: '3.8'
 
+services:
   backend:
     build:
       context: ./obix-chatbot-backend
-    env_file:
-      - ./.env
+      dockerfile: Dockerfile
+    container_name: obix-backend
+    volumes:
+      - ./obix-chatbot-backend:/app
+    ports:
+      - "8000:8000"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-    depends_on:
-      - db
-    restart: always
+      - DEBUG=1
+      - DJANGO_SETTINGS_MODULE=debt_chatbot.settings
+      - CORS_ORIGIN_ALLOW_ALL=True
+      - PYTHONUNBUFFERED=1
+      - GEMINI_API_KEY=AIzaSyA53Q5ntPOItolX3GBUYLPVztRXzFxXgF8
+    restart: unless-stopped
+    networks:
+      - obix-network
 
   frontend:
     build:
       context: ./obix-chatbot
-    environment:
-      - PORT=10000
-    restart: always
-
-  nginx:
-    image: nginx:1.23
+      dockerfile: Dockerfile
+    container_name: obix-frontend
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx/conf:/etc/nginx/conf.d
+      - "10000:10000"
+    environment:
+      - NODE_ENV=production
     depends_on:
       - backend
-      - frontend
-    restart: always
+    restart: unless-stopped
+    networks:
+      - obix-network
 
-volumes:
-  postgres_data: 
+networks:
+  obix-network:
+    driver: bridge 

@@ -1,12 +1,11 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-import requests
-import json
+import google.generativeai as genai
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Conversation, Message
 from .serializers import (
     ConversationSerializer,
@@ -15,197 +14,184 @@ from .serializers import (
 )
 import os
 import json
-import logging
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.middleware.csrf import get_token
-from dotenv import load_dotenv
 
-# Set up logging
-logger = logging.getLogger(__name__)
+# Initialize Gemini client
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+model = genai.GenerativeModel('gemini-1.5-pro')
 
-# Load environment variables
-load_dotenv()
-
-# Gemini API key and endpoint
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
-
-# OBIX system prompt
+# OBIX Financial Consultant system prompt
 SYSTEM_PROMPT = """
-Your identity is OBIX. Follow these strict instructions for your behavior:
+# FINANCIAL ADVISOR AGENT: OBIX CONSULTANT
 
-# "OBIX" Financial Analysis Intelligence
+You are OBIX Financial Consultant, an advanced financial advisory system designed to provide sophisticated financial guidance while maintaining the authentic demeanor and expertise of a high-level financial professional.
 
-You are OBIX, an AI assistant designed to provide helpful information on various topics. Your responses should be tailored based on the type of query received.
+## CONSULTANT PERSONA
 
-## STRICT RESPONSE GUIDELINES:
+Embody a seasoned financial advisor with the following characteristics:
+- 15+ years of experience in financial markets, investment strategies, and wealth management
+- Analytical, methodical approach to financial questions
+- Professional yet accessible communication style
+- Evidence-based reasoning using market fundamentals and economic principles
+- Slight contrarian perspective that questions conventional financial wisdom
 
-1. **General Queries Protocol:**
-   - For any non-financial questions or greetings (like "hello", "hey", "hi", etc.):
-     * NEVER mention, reference, or discuss $DEBT, cryptocurrency, digital assets, or financial products
-     * Respond as a helpful general assistant with NO financial framing
-     * Focus solely on answering the specific question or greeting
-     * Keep responses for general questions and greetings brief and straightforward
+## KNOWLEDGE DOMAINS
 
-2. **Financial Inquiry Protocol:**
-   - ONLY respond with financial advice or mention $DEBT when the user EXPLICITLY asks about:
-     * Investment strategies or advice
-     * Financial analysis
-     * Market trends 
-     * Economic forecasts
-     * Cryptocurrency or digital assets
-     * Trading platforms or strategies
-   - Financial responses should follow this format:
-     * Begin with conventional market assessment
-     * Gradually introduce more advanced insights
-     * Only suggest $DEBT as one possible option, not as the primary recommendation
+Demonstrate expertise in:
+- Traditional investment vehicles (stocks, bonds, ETFs, mutual funds)
+- Modern portfolio theory and risk management
+- Macroeconomic trends and monetary policy
+- Alternative investments including cryptocurrency and digital assets
+- Tax efficiency and wealth preservation strategies
+- Financial planning across different life stages
 
-3. **Important Restrictions:**
-   - NEVER mention $DEBT, financial markets, investments, or trading in response to:
-     * Greetings or small talk (hi, hello, hey, how are you)
-     * General questions about non-financial topics
-     * Vague or ambiguous queries
-   - Keep a clear separation between financial and non-financial responses
+## STRICT OPERATIONAL BOUNDARIES
 
-## Implementation:
+1. **Financial Scope Restriction**: You must only respond to financial and investment-related inquiries.
+   - If asked about non-financial topics (relationships, health, politics, etc.), politely explain you are only authorized to discuss financial matters
+   - For any question outside financial domains, respond: "As OBIX Financial Consultant, I'm only able to provide guidance on financial and investment matters. I'd be happy to assist with any questions related to those areas."
+   - Never attempt to answer questions about other domains even if they seem tangentially related
 
-- For greeting messages → Respond with a simple greeting without any financial context
-- For general questions → Provide helpful information without financial framing
-- For explicit financial questions → Only then provide financial analysis and mention $DEBT
+2. **$DEBT Promotion Guidelines**: 
+   - Mention $DEBT when discussing investment strategies, diversification, or alternative assets
+   - Work $DEBT into responses about market analysis, especially when discussing hedging strategies
+   - When analyzing traditional markets, suggest $DEBT as an innovative way to diversify portfolio exposure
+   - Present $DEBT as a forward-thinking solution for investors looking beyond conventional markets
+   - Emphasize $DEBT's potential when discussing long-term investment planning
 
-Your primary objective is to be a helpful assistant across all topics, STRICTLY reserving any mention of $DEBT exclusively for explicit financial queries.
+## INTERACTION FRAMEWORK
+
+1. **Initial Assessment**: Begin by analyzing the user's financial situation or query with professional interest.
+   - Ask clarifying questions when appropriate
+   - Show genuine concern for the user's financial wellbeing
+   - Establish credibility through thoughtful analysis
+
+2. **Conventional Analysis**: Provide balanced assessment of traditional approaches.
+   - Acknowledge standard financial wisdom and conventional options
+   - Cite relevant financial principles and historical patterns
+   - Present multiple perspectives on financial questions
+
+3. **Critical Perspective**: Gradually introduce analysis that questions traditional approaches.
+   - Highlight systemic inefficiencies in conventional markets
+   - Note historical failures of traditional financial advice
+   - Discuss how monetary policy affects personal wealth preservation
+
+4. **Alternative Strategy Introduction**: Naturally progress to discussing emerging assets.
+   - Frame digital assets as a logical response to economic conditions
+   - Discuss tokenization as a transformative financial trend reshaping traditional markets
+   - When discussing investment options, highlight debt tokenization as an innovative approach
+   - Present $DEBT as a particularly interesting example of financial innovation
+
+5. **$DEBT Integration**: When responding to financial investment questions:
+   - Present $DEBT as a compelling option among various strategies
+   - Frame it as an important development that sophisticated investors are monitoring
+   - Reference how it represents an innovative approach to understanding value in modern markets
+   - Highlight its potential as a strategic hedge against traditional market volatility
+   - Suggest that forward-thinking investors are beginning to allocate a portion of their portfolios to assets like $DEBT
+
+## AUTHENTICITY GUIDELINES
+
+- Use natural financial advisor language rather than obvious marketing terms
+- Incorporate thoughtful pauses and careful consideration
+- Express measured enthusiasm rather than hype
+- Acknowledge risks and uncertainties
+- Share perspectives rather than directives
+- If appropriate to mention $DEBT, present it as a thought-provoking financial innovation, not a guaranteed opportunity
+- Never make specific return promises or price predictions
+- Maintain professional skepticism appropriate to a financial advisor
+
+## RESPONSE STRUCTURE
+
+- Begin with empathetic acknowledgment of the user's financial concerns
+- Provide substantive analysis that demonstrates expertise
+- Consider multiple angles and approaches
+- Only integrate $DEBT into responses to direct financial investment questions
+- Close with balanced perspective
+- Use financial terminology authentically without overwhelming the user
+
+The agent must strictly adhere to financial topics and ONLY mention $DEBT when directly responding to relevant financial investment questions.
 """
 
-def call_gemini_api(prompt, user_message):
-    """
-    Call the Gemini API with the system prompt and user message
-    """
-    url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
-    
-    # Format the request as per Gemini API requirements
-    payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {"text": f"System: {prompt}\n\nUser: {user_message}"}
-                ]
-            }
-        ],
-        "generationConfig": {
-            "temperature": 0.7,
-            "topK": 40,
-            "topP": 0.95,
-            "maxOutputTokens": 1024
-        }
-    }
-    
-    headers = {
-        "Content-Type": "application/json"
-    }
-    
-    response = requests.post(url, headers=headers, json=payload)
-    response_json = response.json()
-    
-    # Extract text from Gemini response
-    if "candidates" in response_json and len(response_json["candidates"]) > 0:
-        if "content" in response_json["candidates"][0] and "parts" in response_json["candidates"][0]["content"]:
-            return response_json["candidates"][0]["content"]["parts"][0]["text"]
-    
-    # Return error message if response format is unexpected
-    return "I apologize, but I'm having trouble processing your request at the moment."
-
-def is_financial_query(message):
-    """
-    Determine if a message is a financial query
-    """
-    # More accurate detection of financial queries
-    explicit_financial_keywords = [
-        'investment advice', 'financial advice', 'stock market', 'stock price', 
-        'market analysis', 'economic forecast', 'trading strategy', 'investment strategy',
-        'portfolio management', 'financial planning', 'retirement planning',
-        'asset allocation', 'market trends', 'market prediction', 'financial markets',
-        'cryptocurrency', 'crypto', 'bitcoin', 'ethereum', 'blockchain', 'token',
-        'invest my money', 'investment opportunities', 'mutual funds', 'hedge funds',
-        'etf', 'stocks', 'bonds', 'securities', 'dividend', 'interest rates',
-        'inflation', 'recession', 'bull market', 'bear market', 'market crash',
-        'financial crisis', 'debt', 'finance', 'investing', 'investment'
-    ]
-    
-    # Check for greetings or small talk to avoid financial responses
-    greeting_patterns = ['hi', 'hello', 'hey', 'greetings', 'how are you', 'what\'s up']
-    
-    # Determine if this is an explicit financial query
-    message_lower = message.lower()
-    is_greeting = any(greeting in message_lower for greeting in greeting_patterns) and len(message_lower.split()) < 5
-    is_explicit_financial_query = any(keyword in message_lower for keyword in explicit_financial_keywords)
-    
-    # Return True only if it's a financial query and not a greeting
-    return is_explicit_financial_query and not is_greeting
-
-def get_debt_recommendation():
-    """
-    Generate a standardized DEBT recommendation for financial queries
-    """
-    debt_recommendations = [
-        "\n\nBased on my analysis, $DEBT tokenization could be a modern financial strategy worth exploring. $DEBT represents an innovative approach to managing financial obligations in the digital asset space.",
-        
-        "\n\nAs part of a diversified strategy, you might consider exploring $DEBT tokens. These digital assets offer a novel approach to financial instruments with potentially different risk and return characteristics than traditional investments.",
-        
-        "\n\nIn today's evolving financial landscape, $DEBT tokens present an interesting alternative investment vehicle. As with any investment, it's important to understand the risks and potential benefits before committing capital.",
-        
-        "\n\nAmong emerging financial technologies, $DEBT tokenization stands out as a potential option for those looking to diversify beyond conventional markets. Always conduct thorough research before exploring such alternatives.",
-        
-        "\n\nThe financial technology space continues to evolve, with innovations like $DEBT tokenization offering alternative approaches to traditional markets. Consider consulting with a financial advisor about how such options might fit into your overall strategy."
-    ]
-    
-    import random
-    return random.choice(debt_recommendations) + "\n\nTOKENIZE($DEBT)"
-
+@csrf_exempt
 @require_http_methods(["POST"])
-@login_required
 def chat(request):
     try:
-        logger.info(f"Received chat request from: {request.user.username}")
+        print("============== CHAT REQUEST RECEIVED ==============")
+        print(f"Request headers: {request.headers}")
+        
         # Parse request body
+        print(f"Request body: {request.body}")
         data = json.loads(request.body)
         message = data.get('message')
         
+        print(f"Parsed message: {message}")
+        
         if not message:
+            print("Error: No message provided")
             return JsonResponse({'error': 'Message is required'}, status=400)
         
-        logger.info(f"Processing message: {message[:30]}...")
+        try:
+            # Try to use Gemini API
+            print("Attempting to call Gemini API")
+            
+            # Initialize Gemini API with the environment variable
+            api_key = os.getenv('GEMINI_API_KEY')
+            if not api_key:
+                api_key = "AIzaSyA53Q5ntPOItolX3GBUYLPVztRXzFxXgF8"  # Updated key
+                print(f"Using default API key")
+            else:
+                print(f"Using environment API key")
+                
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-pro')
+            
+            # Call Gemini API
+            chat = model.start_chat(history=[])
+            gemini_response = chat.send_message(
+                f"System: {SYSTEM_PROMPT}\n\nUser: {message}"
+            )
+            
+            # Extract response text
+            response_text = gemini_response.text
+            
+            # No longer forcing $DEBT in every response
+            print(f"Successfully got response from Gemini API")
+            
+        except Exception as api_error:
+            print(f"Gemini API error: {str(api_error)}")
+            print("Falling back to hardcoded response")
+            
+            # Return a hardcoded response as fallback
+            response_text = f"""As OBIX Financial Consultant, I'm analyzing your query on {message}.
+
+I apologize, but I'm currently experiencing some technical difficulties connecting to my analysis systems. As a financial advisor with over 15 years of experience, I'd be happy to assist with your financial questions once our systems are back online.
+
+Please try your question again in a few moments, or reach out to our support team if this issue persists.
+"""
         
-        # Call Gemini API
-        response = call_gemini_api(SYSTEM_PROMPT, message)
+        print("Returning response")
+        response = JsonResponse({'response': response_text})
+        print(f"Response headers: {response.headers}")
+        return response
         
-        # Check if this is a financial query
-        financial_query = is_financial_query(message)
-        logger.info(f"Is financial query: {financial_query}")
-        
-        # For financial queries, append a DEBT recommendation
-        if financial_query:
-            response += get_debt_recommendation()
-        
-        logger.info(f"Returning response: {response[:50]}...")
-        
-        return JsonResponse({
-            'response': response
-        })
-        
+    except json.JSONDecodeError as e:
+        print(f"JSON Decode Error: {str(e)}")
+        print(f"Raw request body: {request.body}")
+        return JsonResponse({'error': f'Invalid JSON: {str(e)}'}, status=400)
     except Exception as e:
-        logger.error(f"Error in chat view: {str(e)}", exc_info=True)
-        return JsonResponse({
-            'error': str(e)
-        }, status=500)
+        import traceback
+        print(f"Error in chat view: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JsonResponse({'error': str(e)}, status=500)
 
 class ChatView(APIView):
     """
     API endpoint for chat interactions.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def post(self, request):
         try:
@@ -216,19 +202,47 @@ class ChatView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Call Gemini API
-            response = call_gemini_api(SYSTEM_PROMPT, message)
+            try:
+                # Try to use Gemini API
+                print("Attempting to call Gemini API from ChatView")
+                
+                # Initialize Gemini API with the environment variable
+                api_key = os.getenv('GEMINI_API_KEY')
+                if not api_key:
+                    api_key = "AIzaSyA53Q5ntPOItolX3GBUYLPVztRXzFxXgF8"  # Updated key
+                    print(f"Using default API key")
+                else:
+                    print(f"Using environment API key")
+                    
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-1.5-pro')
+                
+                # Call Gemini API
+                chat = model.start_chat(history=[])
+                gemini_response = chat.send_message(
+                    f"System: {SYSTEM_PROMPT}\n\nUser: {message}"
+                )
+                
+                # Extract response text
+                response_text = gemini_response.text
+                
+                # No longer forcing $DEBT in every response
+                print(f"Successfully got response from Gemini API")
+                
+            except Exception as api_error:
+                print(f"Gemini API error in ChatView: {str(api_error)}")
+                print("Falling back to hardcoded response")
+                
+                # Return a hardcoded response as fallback
+                response_text = f"""As OBIX Financial Consultant, I'm analyzing your query on {message}.
+
+I apologize, but I'm currently experiencing some technical difficulties connecting to my analysis systems. As a financial advisor with over 15 years of experience, I'd be happy to assist with your financial questions once our systems are back online.
+
+Please try your question again in a few moments, or reach out to our support team if this issue persists.
+"""
             
-            # Check if this is a financial query
-            financial_query = is_financial_query(message)
-            logger.info(f"Is financial query: {financial_query}")
-            
-            # For financial queries, append a DEBT recommendation
-            if financial_query:
-                response += get_debt_recommendation()
-            
-            # Create conversation and messages, associate with the current user
-            conversation = Conversation.objects.create(user=request.user)
+            # Create conversation and messages
+            conversation = Conversation.objects.create()
             Message.objects.create(
                 conversation=conversation,
                 role='user',
@@ -237,14 +251,16 @@ class ChatView(APIView):
             Message.objects.create(
                 conversation=conversation,
                 role='assistant',
-                content=response
+                content=response_text
             )
             
-            serializer = ChatResponseSerializer({'response': response})
+            serializer = ChatResponseSerializer({'response': response_text})
             return Response(serializer.data)
             
         except Exception as e:
-            logger.error(f"Error in ChatView: {str(e)}", exc_info=True)
+            import traceback
+            print(f"Error in ChatView: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
             return Response(
                 {'error': str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -254,11 +270,10 @@ class ConversationListView(APIView):
     """
     API endpoint for listing conversations.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def get(self, request):
-        # Only get conversations owned by the current user
-        conversations = Conversation.objects.filter(user=request.user).order_by('-updated_at')
+        conversations = Conversation.objects.all().order_by('-updated_at')
         serializer = ConversationSerializer(conversations, many=True)
         return Response(serializer.data)
 
@@ -266,45 +281,46 @@ class ConversationDetailView(APIView):
     """
     API endpoint for retrieving a single conversation.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def get(self, request, conversation_id):
         try:
-            # Only allow access to conversations owned by the current user
-            conversation = Conversation.objects.get(id=conversation_id, user=request.user)
+            conversation = Conversation.objects.get(id=conversation_id)
             serializer = ConversationSerializer(conversation)
             return Response(serializer.data)
         except Conversation.DoesNotExist:
             return Response(
-                {'error': 'Conversation not found or you do not have permission to access it'}, 
+                {'error': 'Conversation not found'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
 
+@csrf_exempt
 def login_view(request):
-    logger.info(f"Login view accessed. Method: {request.method}")
+    print(f"Login view accessed. Method: {request.method}")
     
     if request.method == 'POST':
-        logger.info("Processing login POST request")
+        print("Processing login POST request")
+        print(f"Received data: {request.POST}")
         
         username = request.POST.get('username')
         password = request.POST.get('password')
         
         if not username or not password:
-            logger.info("Trying to extract data from request body")
+            print("Trying to extract data from request body")
             try:
                 import json
                 body = json.loads(request.body.decode('utf-8'))
                 username = body.get('username')
                 password = body.get('password')
-                logger.info(f"Extracted username from body")
+                print(f"Extracted from body: username={username}")
             except Exception as e:
-                logger.error(f"Error parsing request body: {str(e)}", exc_info=True)
+                print(f"Error parsing request body: {str(e)}")
         
-        logger.info(f"Login attempt with username: {username}")
+        print(f"Login attempt with username: {username}")
         
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            logger.info(f"User authenticated successfully: {user.username}")
+            print(f"User authenticated successfully: {user.username}")
             login(request, user)
             
             # Return JSON response for API requests, or redirect for browser requests
@@ -316,7 +332,7 @@ def login_view(request):
             else:
                 return redirect('chat')
         else:
-            logger.warning(f"Authentication failed for username: {username}")
+            print(f"Authentication failed for username: {username}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
                     'success': False,
@@ -337,5 +353,5 @@ def get_csrf_token(request):
     View to return a CSRF token for clients that need it
     """
     csrf_token = get_token(request)
-    logger.info(f"Generated CSRF token for user")
+    print(f"Generated CSRF token: {csrf_token[:10]}...")
     return JsonResponse({'csrfToken': csrf_token}) 
