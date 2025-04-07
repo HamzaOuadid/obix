@@ -257,7 +257,7 @@ $max-width: 800px;
 
 .input-container {
   position: fixed;
-  bottom: 32px;
+  bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
   padding: 8px;
@@ -334,18 +334,22 @@ $max-width: 800px;
 
 .footer {
   position: fixed;
-  bottom: 8px;
+  bottom: 0;
   left: 0;
   right: 0;
   text-align: center;
   font-size: 0.75rem;
   color: $secondary-text;
-  padding: 0.5rem;
-  z-index: 50;
+  padding: 0.5rem 0.5rem 0.75rem;
+  z-index: 40;
+  background-color: rgba(12, 12, 12, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   
   .copyright {
     margin: 0;
-    opacity: 0.6;
+    opacity: 0.7;
   }
 }
 
@@ -425,7 +429,7 @@ $max-width: 800px;
   }
   
   .input-container {
-    bottom: 16px;
+    bottom: 30px;
     padding: 6px;
     max-width: calc(100% - 32px);
     
@@ -445,7 +449,7 @@ $max-width: 800px;
   }
   
   .footer {
-    bottom: 4px;
-    font-size: 0.7rem;
+    padding: 0.5rem 0.5rem 0.5rem;
+    font-size: 0.65rem;
   }
 }
